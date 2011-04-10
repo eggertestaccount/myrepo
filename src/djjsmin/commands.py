@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from cStringIO import StringIO
-import glob
 import logging
 import os
-import os.path as p
 
 from django.core.exceptions import ImproperlyConfigured
 from djboss.commands import *
@@ -14,33 +12,6 @@ from djjsmin import utils
 
 
 LOG = logging.getLogger('django.djjsmin')
-
-
-def resolve_patterns(patterns, root):
-    """Resolve a list of globs/URLs into absolute filenames."""
-    
-    input_files, temp_files = [], []
-    
-    for pattern in patterns:
-        # Handle URLs in the JSMIN_INPUT setting.
-        if pattern.startswith("http:"):
-            temp_filename = utils.temp_fetch(pattern)
-            input_files.append(temp_filename)
-            temp_files.append(temp_filename)
-        
-        else:
-            # Ensure glob patterns are absolute.
-            glob_files = glob.glob(utils.make_abs(pattern, root))
-            # Sort filenames within the results of a single pattern.
-            glob_files.sort()
-            
-            for filename in glob_files:
-                # Make sure there are no repetitions.
-                if filename not in input_files:
-                    input_files.append(filename)
-    
-    return input_files, temp_files
-
 
 @command
 @argument('-d', '--dev-mode', action='store_true', default=None, dest='development_mode',
@@ -66,7 +37,7 @@ def jsmin(args):
     
     # `temp_files` have to be deleted after processing, whether minification was
     # successful or not.
-    input_files, temp_files = resolve_patterns(args.settings.JSMIN_INPUT, root)
+    input_files, temp_files = utils.resolve_patterns(args.settings.JSMIN_INPUT, root)
     
     try:
         # Get an absolute output filename.

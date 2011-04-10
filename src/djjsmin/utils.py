@@ -5,6 +5,8 @@ import os
 import tempfile
 import urllib2
 import urlparse
+import glob
+import os.path as p
 
 
 LOG = logging.getLogger('django.djjsmin')
@@ -29,6 +31,31 @@ if not hasattr(os.path, 'relpath'):
             return os.path.curdir
         return os.path.join(*rel_list)
     os.path.relpath = relpath
+
+def resolve_patterns(patterns, root):
+    """Resolve a list of globs/URLs into absolute filenames."""
+    
+    input_files, temp_files = [], []
+    
+    for pattern in patterns:
+        # Handle URLs in the JSMIN_INPUT setting.
+        if pattern.startswith("http:"):
+            temp_filename = temp_fetch(pattern)
+            input_files.append(temp_filename)
+            temp_files.append(temp_filename)
+        
+        else:
+            # Ensure glob patterns are absolute.
+            glob_files = glob.glob(make_abs(pattern, root))
+            # Sort filenames within the results of a single pattern.
+            glob_files.sort()
+            
+            for filename in glob_files:
+                # Make sure there are no repetitions.
+                if filename not in input_files:
+                    input_files.append(filename)
+    
+    return input_files, temp_files
 
 
 def get_root(settings):
